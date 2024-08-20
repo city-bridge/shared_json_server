@@ -1,6 +1,5 @@
 import logging
 import pathlib
-import config
 import json
 import jsonschema
 
@@ -13,11 +12,13 @@ class SharedData:
     data_name:str
     lock_name:str
     data:dict
+    base_dir:pathlib.Path
 
-    def __init__(self,data_name:str) -> None:
+    def __init__(self,base_dir_path:str,data_name:str) -> None:
         self.lock_name = None
         self.data = None
         self.data_name = data_name
+        self.base_dir = self._data_name_to_base_dir(base_dir_path,data_name)
     
     def set_data(self,data:dict):
         tmp_schema = self.read_schema()
@@ -49,13 +50,12 @@ class SharedData:
         if not self.is_locked(lock_name):
             self.lock_name = None
 
-    def _data_name_to_base_dir(self)->pathlib.Path:
-        data_name = self.data_name
-        base_dir = pathlib.Path(config.DATA_DIR)
+    def _data_name_to_base_dir(self,base_dir_path:str,data_name:str)->pathlib.Path:
+        base_dir = pathlib.Path(base_dir_path)
         if not base_dir.exists():
-            raise SharedDataException('data dir is not exists:' + config.DATA_DIR)
+            raise SharedDataException('data dir is not exists:' + str(base_dir))
         if not base_dir.is_dir():
-            raise SharedDataException('data dir is not directory:' + config.DATA_DIR)
+            raise SharedDataException('data dir is not directory:' + str(base_dir))
 
         for name in data_name.split('/'):
             if len(name) == 0:
@@ -69,16 +69,13 @@ class SharedData:
         return base_dir
 
     def _data_name_to_path(self)->pathlib.Path:
-        base_dir = self._data_name_to_base_dir()
-        return base_dir / 'data.json'
+        return self.base_dir / 'data.json'
 
     def _data_name_to_schema_path(self)->pathlib.Path:
-        base_dir = self._data_name_to_base_dir()
-        return base_dir / 'schema.json'
+        return self.base_dir / 'schema.json'
 
     def _data_name_to_default_data_path(self)->pathlib.Path:
-        base_dir = self._data_name_to_base_dir()
-        return base_dir / 'default.json'
+        return self.base_dir / 'default.json'
 
     def write_data(self,data:dict):
         tmp_schema = self.read_schema()
@@ -131,26 +128,32 @@ class SharedData:
                 ret = json.load(f)
         return ret
 
-_AllData = {}
-def get_data_obj(data_name:str)->SharedData:
-    if data_name in _AllData:
-        shd = _AllData[data_name]
-    else:
-        shd = SharedData(data_name)
-        _AllData[data_name] = shd
-    return shd
+class SharedDataManager:
+    _AllData:dict
+    data_path:str
+    def __init__(self,data_path:str) -> None:
+        self._AllData = {}
+        self.data_path = data_path
 
-def get_data_names()->list:
-    return list(_AllData.keys())
+    def get_data_obj(self, data_name:str)->SharedData:
+        if data_name in self._AllData:
+            shd = self._AllData[data_name]
+        else:
+            shd = SharedData(self.data_path,data_name)
+            self._AllData[data_name] = shd
+        return shd
 
-def get_data_name_tree()->dict:
-    ret = {}
-    for name in get_data_names():
-        tmp = ret
-        for n in name.split('/'):
-            if len(n) == 0:
-                continue
-            if n not in tmp:
-                tmp[n] = {}
-            tmp = tmp[n]
-    return ret
+    def get_data_names(self)->list:
+        return list(self._AllData.keys())
+
+    def get_data_name_tree(self)->dict:
+        ret = {}
+        for name in self.get_data_names():
+            tmp = ret
+            for n in name.split('/'):
+                if len(n) == 0:
+                    continue
+                if n not in tmp:
+                    tmp[n] = {}
+                tmp = tmp[n]
+        return ret

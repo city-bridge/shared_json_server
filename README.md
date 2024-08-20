@@ -11,9 +11,10 @@
 ```
 pip install jsonschema
 pip install git+https://github.com/city-bridge/cbpyjsonrpc.git
+pip install git+https://github.com/city-bridge/shared_json_server.git
 ```
 
 ## start server
 ```
-python3 python/shared_data_server.py
+python3 -m shared_json_server -h localhost -p 10000 -l ./log -d ./data
 ```

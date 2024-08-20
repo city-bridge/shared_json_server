@@ -1,17 +1,9 @@
 from jsonschema import validate, ValidationError
 import cbpyjsonrpc.jsonrpc_exception as jsonrpc_exception
-import json_schema_def
+from .json_schema_def import JSON_SCHEMA_REQUEST_METHOD_LIST
 
-_schema_list = [
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_LOCK,
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_RELEASE,
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_READ_DATA,
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_WRITE_DATA,
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_GET_DATA,
-    json_schema_def.JSON_SCHEMA_REQUEST_METHOD_SET_DATA
-]
 _schema_jsonrpc_request_methods = {}
-for schema in _schema_list:
+for schema in JSON_SCHEMA_REQUEST_METHOD_LIST:
     _schema_jsonrpc_request_methods[schema['properties']['method']['const']] = schema
 
 
